@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맞춤형 AI 서비스 추천 설문조사</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        .option-label { transition: all 0.2s ease-in-out; border: 2px solid transparent; }
+        .option-label:hover { border-color: #cbd5e1; background-color: #f1f5f9; }
+        input[type="radio"]:checked + .option-content {
+            border-color: #3b82f6; background-color: #eff6ff; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+        }
+        input[type="checkbox"]:checked + .option-content {
+            border-color: #8b5cf6; background-color: #f5f3ff; box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1);
+        }
+        input[type="checkbox"]:disabled + .option-content {
+            opacity: 0.5; cursor: not-allowed; border-color: transparent; background-color: #f8fafc;
+        }
+        .loader {
+            border-top-color: #3b82f6; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
+
+    <div class="w-full max-w-3xl mb-8 text-center">
+        <h1 class="text-3xl font-bold text-slate-900 mb-2">나에게 딱 맞는 AI 찾기 🎯</h1>
+        <p class="text-slate-600">업무와 일상에서 나를 도와줄 최적의 AI 비서를 추천해 드립니다. (소요 시간: 약 3분)</p>
+    </div>
+
+    <!-- 메인 설문조사 컨테이너 -->
+    <div id="survey-container" class="w-full max-w-3xl bg-white rounded-2xl shadow-xl overflow-hidden relative">
+        <div class="p-1 sm:p-2 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+        <form id="survey-form" class="p-6 sm:p-10">
+            
+            <!-- 이름 및 직급 입력 (강사님 요청 반영) -->
+            <div class="mb-10 p-6 bg-blue-50/50 rounded-xl border border-blue-100 shadow-sm">
+                <label for="userName" class="block text-lg font-bold text-slate-800 mb-2">
+                    성함 및 직급 <span class="text-blue-600">*</span>
+                </label>
+                <p class="text-sm text-slate-600 mb-4">맞춤형 AI 추천 및 원활한 진단 진행을 위해 성함(과 직급)을 기재해 주세요.</p>
+                <input type="text" id="userName" name="userName" required placeholder="예: 홍길동 대리, 김철수 팀장, 혹은 실명만" class="w-full p-4 rounded-xl border-2 border-slate-200 bg-white text-slate-800 font-medium focus:border-blue-500 focus:outline-none transition-all duration-200">
+            </div>
+
+            <div id="questions-wrapper" class="space-y-10">
+                <!-- JavaScript로 문항들이 동적으로 렌더링됩니다 -->
+            </div>
+
+            <div id="error-message" class="hidden mt-8 p-4 bg-red-50 text-red-600 rounded-lg text-sm font-medium text-center border border-red-100">
+                성함을 입력하시고, 모든 문항에 응답해 주세요. (복수 응답 문항은 조건을 확인해 주세요)
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-slate-100 flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition duration-200 shadow-md flex items-center gap-2">
+                    <span>제출하고 결과 보기</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 로딩 화면 -->
+    <div id="loading-container" class="hidden w-full max-w-3xl bg-white rounded-2xl shadow-xl p-16 text-center">
+        <div class="inline-block w-16 h-16 border-4 border-slate-200 border-solid rounded-full loader mb-4"></div>
+        <h2 class="text-xl font-bold text-slate-800">응답을 분석하고 있습니다...</h2>
+        <p class="text-slate-500 mt-2">최적의 AI 서비스를 탐색 중입니다.</p>
+    </div>
+
+    <!-- 결과 확인 화면 -->
+    <div id="result-container" class="hidden w-full max-w-3xl bg-white rounded-2xl shadow-xl overflow-hidden relative">
+        <div class="p-1 sm:p-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+        <div class="p-6 sm:p-10">
+            <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <span>🎉 진단 완료!</span>
+            </h2>
+            <p id="result-greeting" class="text-lg font-medium text-emerald-600 mb-4"></p>
+            <p class="text-slate-600 mb-6">아래의 [결과 복사하기] 버튼을 눌러 공유해 주시면, 맞춤형 AI를 추천해 드립니다.</p>
+            
+            <div id="result-content" class="bg-slate-50 rounded-xl p-6 text-sm text-slate-700 space-y-4 font-mono mb-6 border border-slate-100 h-64 overflow-y-auto">
+                <!-- JS로 결과 주입 -->
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                <button id="copy-btn" type="button" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex justify-center items-center gap-2 shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    <span>결과 복사하기 (공유용)</span>
+                </button>
+                <button id="restart-btn" type="button" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-3 px-6 rounded-lg transition duration-200">
+                    다시 테스트하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚨 비밀 대시보드 화면 (평소엔 숨김 처리) -->
+    <div id="admin-dashboard" class="hidden w-full max-w-3xl bg-slate-900 text-white rounded-2xl shadow-2xl overflow-hidden mt-8 border border-slate-700">
+        <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-amber-400">🕵️‍♂️ 강사님 전용 비밀 대시보드 (임시)</h2>
+            <button id="close-admin-btn" class="text-slate-400 hover:text-white">닫기 ✖</button>
+        </div>
+        <div class="p-6 h-96 overflow-y-auto" id="admin-list">
+            <!-- 제출된 데이터가 리스트 형태로 쌓임 -->
+            <p class="text-slate-400 text-center mt-10">아직 접수된 응답이 없습니다.</p>
+        </div>
+        <div class="p-4 bg-slate-800 text-xs text-slate-400 border-t border-slate-700">
+            * 현재 환경에서는 로컬 브라우저에 임시 저장된 데이터만 보여줍니다. 실제 배포 시 '구글 스프레드시트 연동 코드'를 삽입하면 완벽히 작동합니다.
+        </div>
+    </div>
+
+    <!-- 비밀 접근 버튼 (일반인 눈에 띄지 않게 흐릿하게 배치) -->
+    <div class="mt-8 text-center w-full max-w-3xl">
+        <button id="secret-admin-trigger" class="text-[10px] text-slate-300 hover:text-slate-500 transition cursor-default">System Info</button>
+    </div>
+
+    <script>
+        // ✅ 문항 추가, 삭제, 수정이 100% 유연하게 가능한 데이터 구조입니다.
+        const surveyData = [
+            {
+                id: 'q1',
+                category: 'A. 라이프 & 워크 스타일',
+                title: '현재 맡고 계신 주된 직군/직무는 무엇인가요?',
+                type: 'single',
+                options: ['기획/전략/마케팅', '영업/고객 지원', '경영 지원/인사/총무/재무', '디자인/영상 등 크리에이티브', 'IT/개발/데이터 분석', '기타 직무']
+            },
+            {
+                id: 'q2',
+                category: 'B. 평소 자주 하는 작업',
+                title: '회사에서 수행하는 \'주력 업무\' 중 가장 많은 시간을 쏟는 작업은 무엇인가요?',
+                subtitle: '(최대 2개 선택)',
+                type: 'multiple', max: 2,
+                options: ['방대한 자료 검색 및 요약 (시장 조사, 뉴스 클리핑 등)', '텍스트 초안 작성 및 교정 (보고서, 이메일, 기획서 등)', '데이터 분석 및 엑셀 작업', '시각 자료 제작 (PPT 디자인, 이미지/영상 편집)', '외국어 번역 및 해외 자료 검토', '코드 작성 및 IT 기술 검토']
+            },
+            {
+                id: 'q3',
+                category: 'B. 평소 자주 하는 작업',
+                title: '퇴근 후 \'개인적인 시간(취미, 자기계발 등)\'에 자주 하거나 관심 있는 활동은 무엇인가요?',
+                subtitle: '(최대 2개 선택)',
+                type: 'multiple', max: 2,
+                options: ['독서(경제/역사/소설 등) 및 정보 수집', '재테크 관리 (주식, 퇴직연금 등 투자 정보 탐색)', '외국어 공부 및 어학 자격증 준비', 'IT/웹 개발 학습 및 최신 게임 트렌드 탐색', '창작 활동 (블로그 글쓰기, 그림, 웹소설 등)', '여행 일정 기획 및 맛집 탐색']
+            },
+            {
+                id: 'q4',
+                category: 'C. 페인 포인트 및 AI 활용 목적',
+                title: '일이나 취미 활동을 할 때 가장 \'막막하거나 귀찮은 순간\'은 언제인가요?',
+                type: 'single',
+                options: ['백지상태에서 첫 줄(초안)을 쓰거나 아이디어를 떠올려야 할 때', '흩어진 여러 정보를 하나로 깔끔하게 요약/정리해야 할 때', '내용물은 다 있는데, 예쁘게 디자인하고 꾸미는 데 시간이 걸릴 때', '모르는 전문 용어나 복잡한 개념(수식, 코드 등)을 해석해야 할 때']
+            },
+            {
+                id: 'q5',
+                category: 'C. 페인 포인트 및 AI 활용 목적',
+                title: '그렇다면, AI가 나의 어떤 역할을 가장 먼저 대신해 주길 원하시나요?',
+                type: 'single',
+                options: ['내 일을 빠르고 정확하게 처리해 주는 \'자동화 비서\'', '기발한 영감과 아이디어를 던져주는 \'브레인스토밍 파트너\'', '모르는 것을 친절하게 설명해 주는 \'1:1 개인 튜터\'', '결과물을 보기 좋게 시각화해 주는 \'디자이너\'']
+            },
+            {
+                id: 'q6',
+                category: 'D. 예산 및 사용 환경',
+                title: '나에게 딱 맞는 AI 서비스를 찾았다면, 개인적으로 결제할 수 있는 \'월별 한도 예산\'은 어느 정도인가요?',
+                type: 'single',
+                options: ['일단 무료 버전으로 충분히 써보고 싶다.', '월 1~2만 원대 (커피 2~3잔 값) 정도는 투자할 의향이 있다.', '내 업무와 취미에 확실한 도움이 된다면 월 3만 원 이상도 괜찮다.']
+            },
+            {
+                id: 'q7',
+                category: 'D. 예산 및 사용 환경',
+                title: '하루에 AI 비서를 얼마나 자주, 많이(Heavy) 사용하실 예정인가요? (예상 사용량)',
+                type: 'single',
+                options: [
+                    '가볍게 (주 1~2회 내외): 가끔 궁금한 것을 묻거나 간단한 초안을 잡는 정도',
+                    '꾸준하게 (하루 3~5회 내외): 매일 업무나 일상에서 루틴하게 보조를 받는 정도',
+                    '하드코어 (하루 수십 회 이상): 하루 종일 켜두고 방대한 문서/코드를 분석하며 작업하는 정도'
+                ]
+            },
+            {
+                id: 'q8',
+                category: 'D. 예산 및 사용 환경',
+                title: 'AI에 입력할 데이터의 민감도(보안 등급)는 어느 정도인가요?',
+                type: 'single',
+                options: [
+                    '최고 수준 보안 (기업 대외비, 고객 개인정보가 포함되어 외부 유출 절대 금지)',
+                    '중간 수준 보안 (유출은 조심스럽지만, 민감 정보만 가리고 요약/번역하는 정도는 가능)',
+                    '완전 공개/개인용 (보안에 전혀 구애받지 않는 퍼블릭 정보나 개인적인 취미용 데이터)',
+                    '🤔 잘 모르겠습니다 / 회사 정책을 잘 몰라서 무난한 걸 추천받고 싶습니다.'
+                ]
+            },
+            {
+                id: 'q9',
+                category: 'E. AI 성향 및 사용성 선호도',
+                title: '내가 원하는 \'AI 비서의 문제 해결 방식(톤앤매너)\'은 어디에 가깝나요?',
+                type: 'single',
+                options: [
+                    '깐깐한 팩트체커: 답변이 조금 딱딱해도 출처가 확실하고 오류(할루시네이션)가 없는 것이 가장 중요함.',
+                    '정중한 모범생: 보편적이고 안전한 정보를 깔끔한 구조(개요, 표 등)로 정리해 주는 것이 좋음.',
+                    '유연한 기획자: 나의 생각을 읽고 풍부하게 확장해 주며 뉘앙스 파악을 잘하는 조력자가 좋음.',
+                    '틀을 깨는 크리에이터: 규제에 얽매이지 않고 때론 직설적이거나 유쾌하게 창의적인 영감을 던져주는 것이 좋음.'
+                ]
+            },
+            {
+                id: 'q10',
+                category: 'E. AI 성향 및 사용성 선호도',
+                title: '새로운 AI 도구를 다룰 때 선호하는 조작 방식은 무엇인가요?',
+                type: 'single',
+                options: [
+                    '순수 대화형 (프롬프트): 백지상태 채팅창에 내가 원하는 지시를 자유롭고 길게 텍스트로 치는 방식',
+                    '템플릿 대화형: 잘 짜인 초안이 제공되고, 그 안에서 대화로 세부 내용만 덧붙여 고치는 방식',
+                    '버튼 특화형: 프롬프트 고민 없이 \'요약하기\', \'어조 변경\' 등의 UI 버튼만 클릭하는 직관적인 방식',
+                    '자동화 지향형: 내가 묻기 전에 AI가 스스로 웹을 탐색해 리포트를 만들어오거나 여러 앱을 연동하는 방식'
+                ]
+            }
+        ];
+
+        let rawResultText = ""; 
+        const wrapper = document.getElementById('questions-wrapper');
+
+        function renderQuestions() {
+            let currentCategory = '';
+            
+            surveyData.forEach((q, index) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'fade-in';
+                
+                if (q.category !== currentCategory) {
+                    const catTitle = document.createElement('h3');
+                    catTitle.className = 'text-sm font-bold text-blue-600 tracking-wider uppercase mb-3 mt-8 border-b pb-2';
+                    catTitle.innerText = q.category;
+                    qDiv.appendChild(catTitle);
+                    currentCategory = q.category;
+                }
+
+                const qTitle = document.createElement('h4');
+                qTitle.className = 'text-lg font-semibold text-slate-800 mb-1';
+                qTitle.innerHTML = `<span class="text-slate-400 mr-2">Q${index + 1}.</span>${q.title}`;
+                qDiv.appendChild(qTitle);
+
+                if (q.subtitle) {
+                    const qSub = document.createElement('p');
+                    qSub.className = 'text-sm text-purple-600 font-medium mb-3';
+                    qSub.innerText = q.subtitle;
+                    qDiv.appendChild(qSub);
+                } else {
+                    const spacer = document.createElement('div');
+                    spacer.className = 'mb-4';
+                    qDiv.appendChild(spacer);
+                }
+
+                const optionsGrid = document.createElement('div');
+                optionsGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-3';
+                
+                const inputType = q.type === 'single' ? 'radio' : 'checkbox';
+                
+                q.options.forEach((opt) => {
+                    const label = document.createElement('label');
+                    label.className = 'relative cursor-pointer';
+                    
+                    // 글씨가 긴 문항들은 모바일/PC 상관없이 한 줄 전체를 쓰도록 레이아웃 조정
+                    if(opt.includes('잘 모르겠습니다') || opt.includes('최고 수준 보안') || opt.includes('중간 수준 보안') || q.id === 'q7' || q.id === 'q9' || q.id === 'q10') {
+                        label.className = 'relative cursor-pointer md:col-span-2'; 
+                    }
+                    
+                    const input = document.createElement('input');
+                    input.type = inputType;
+                    input.name = q.id;
+                    input.value = opt;
+                    input.className = 'peer sr-only';
+                    
+                    if (q.type === 'multiple') {
+                        input.addEventListener('change', () => handleMultipleSelect(q.id, q.max));
+                    }
+
+                    const content = document.createElement('div');
+                    content.className = 'option-content w-full h-full p-4 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-medium transition-all duration-200 flex items-center';
+                    
+                    if(opt.includes('잘 모르겠습니다')) {
+                        content.classList.add('bg-slate-50', 'text-slate-500');
+                    }
+                    
+                    content.innerText = opt;
+
+                    label.appendChild(input);
+                    label.appendChild(content);
+                    optionsGrid.appendChild(label);
+                });
+
+                qDiv.appendChild(optionsGrid);
+                wrapper.appendChild(qDiv);
+            });
+        }
+
+        function handleMultipleSelect(name, max) {
+            const checkedBoxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+            const allBoxes = document.querySelectorAll(`input[name="${name}"]`);
+            
+            if (checkedBoxes.length >= max) {
+                allBoxes.forEach(box => {
+                    if (!box.checked) box.disabled = true;
+                });
+            } else {
+                allBoxes.forEach(box => {
+                    box.disabled = false;
+                });
+            }
+        }
+
+        document.getElementById('survey-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const results = {};
+            let isValid = true;
+            
+            const userName = formData.get('userName');
+            if (!userName || userName.trim() === '') isValid = false;
+
+            rawResultText = `[AI 서비스 큐레이션 진단 결과]\n👤 응답자: ${userName}\n\n`;
+
+            surveyData.forEach((q, index) => {
+                const values = formData.getAll(q.id);
+                if (values.length === 0) isValid = false;
+                if (q.type === 'multiple' && values.length > q.max) isValid = false;
+                
+                results[q.id] = { question: q.title, answer: values };
+                
+                if (values.length > 0) {
+                    rawResultText += `Q${index+1}. ${values.join(', ')}\n`;
+                }
+            });
+
+            const errorMsg = document.getElementById('error-message');
+            if (!isValid) {
+                errorMsg.classList.remove('hidden');
+                errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            errorMsg.classList.add('hidden');
+
+            // ✅ 로컬 메모리(임시 대시보드용)에 데이터 저장
+            saveToLocalAdmin(userName, results);
+
+            /* 
+             * 🚨 강사님을 위한 팁: 구글 시트 자동 저장 연동 시 아래 코드를 사용합니다.
+             * 
+             * fetch('여기에_구글_앱스_스크립트_배포_URL을_넣으세요', { 
+             *     method: 'POST', 
+             *     mode: 'no-cors',
+             *     headers: { 'Content-Type': 'application/json' },
+             *     body: JSON.stringify({ userName: userName, results: results }) 
+             * }); 
+             */
+
+            document.getElementById('survey-container').classList.add('hidden');
+            document.getElementById('loading-container').classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('loading-container').classList.add('hidden');
+                document.getElementById('result-container').classList.remove('hidden');
+                
+                document.getElementById('result-greeting').innerText = `${userName} 님의 진단이 성공적으로 수합되었습니다!`;
+                
+                const resultContent = document.getElementById('result-content');
+                resultContent.innerHTML = '';
+                
+                Object.keys(results).forEach((key, index) => {
+                    const item = results[key];
+                    const answerText = item.answer.map(a => `<span class="text-blue-600 font-semibold">'${a}'</span>`).join(', ');
+                    resultContent.innerHTML += `
+                        <div class="border-b border-slate-200 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
+                            <div class="font-bold text-slate-800 text-xs mb-1">Q${index+1}</div>
+                            <div class="pl-2">👉 ${answerText}</div>
+                        </div>
+                    `;
+                });
+            }, 1000);
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            navigator.clipboard.writeText(rawResultText).then(() => {
+                const btn = document.getElementById('copy-btn');
+                const originalText = btn.innerHTML;
+                
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    <span>복사 완료! 채팅창에 붙여넣기(Ctrl+V) 하세요</span>
+                `;
+                btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    btn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+                }, 3000);
+            }).catch(err => {
+                alert('복사에 실패했습니다. 화면의 텍스트를 직접 드래그해서 복사해 주세요.');
+            });
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', function() {
+            document.getElementById('survey-form').reset();
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(box => box.disabled = false);
+            document.getElementById('result-container').classList.add('hidden');
+            document.getElementById('survey-container').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        function saveToLocalAdmin(name, results) {
+            let savedData = JSON.parse(localStorage.getItem('adminSurveyData') || '[]');
+            const now = new Date();
+            const timeString = `${now.getMonth()+1}월 ${now.getDate()}일 ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            // 핵심 큐레이팅 키워드 요약 (강사님 대시보드 표시용)
+            const mainWork = results.q2.answer[0].split(' ')[0]; 
+            const aiRole = results.q5.answer[0].match(/'([^']+)'/)?.[1] || results.q5.answer[0].substring(0, 5);
+            const aiTone = results.q9.answer[0].split(':')[0]; // 새 문항 번호(Q9) 반영
+
+            savedData.push({
+                time: timeString,
+                name: name,
+                summary: `${mainWork} / ${aiRole} / ${aiTone}`,
+                raw: results
+            });
+            localStorage.setItem('adminSurveyData', JSON.stringify(savedData));
+            renderAdminDashboard();
+        }
+
+        function renderAdminDashboard() {
+            const listDiv = document.getElementById('admin-list');
+            let savedData = JSON.parse(localStorage.getItem('adminSurveyData') || '[]');
+            
+            if (savedData.length === 0) return;
+            
+            listDiv.innerHTML = '';
+            savedData.reverse().forEach((data, i) => {
+                listDiv.innerHTML += `
+                    <div class="bg-slate-800 p-4 rounded-lg mb-3 border border-slate-700 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-bold text-white text-lg">${data.name}</span>
+                                <span class="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded">${data.time}</span>
+                            </div>
+                            <div class="text-sm text-emerald-400 font-medium">키워드: ${data.summary}</div>
+                        </div>
+                        <button onclick="alert('전체 데이터 (추후 엑셀 형태로 구현됨)\\n${JSON.stringify(data.raw).substring(0, 100)}...')" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2 rounded text-white transition">상세 보기</button>
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('secret-admin-trigger').addEventListener('click', function() {
+            document.getElementById('admin-dashboard').classList.toggle('hidden');
+            document.getElementById('admin-dashboard').scrollIntoView({ behavior: 'smooth' });
+            renderAdminDashboard();
+        });
+
+        document.getElementById('close-admin-btn').addEventListener('click', function() {
+            document.getElementById('admin-dashboard').classList.add('hidden');
+        });
+
+        renderQuestions();
+        renderAdminDashboard();
+    </script>
+</body>
+</html>
