@@ -175,7 +175,7 @@
                     '최고 수준 보안 (기업 대외비, 고객 개인정보가 포함되어 외부 유출 절대 금지)',
                     '중간 수준 보안 (유출은 조심스럽지만, 민감 정보만 가리고 요약/번역하는 정도는 가능)',
                     '완전 공개/개인용 (보안에 전혀 구애받지 않는 퍼블릭 정보나 개인적인 취미용 데이터)',
-                    '잘 모르겠습니다 / 회사 정책을 잘 몰라서 무난한 걸 추천받고 싶습니다.'
+                    '🤔 잘 모르겠습니다 / 회사 정책을 잘 몰라서 무난한 걸 추천받고 싶습니다.'
                 ]
             },
             {
@@ -200,6 +200,19 @@
                     '템플릿 대화형: 잘 짜인 초안이 제공되고, 그 안에서 대화로 세부 내용만 덧붙여 고치는 방식',
                     '버튼 특화형: 프롬프트 고민 없이 \'요약하기\', \'어조 변경\' 등의 UI 버튼만 클릭하는 직관적인 방식',
                     '자동화 지향형: 내가 묻기 전에 AI가 스스로 웹을 탐색해 리포트를 만들어오거나 여러 앱을 연동하는 방식'
+                ]
+            },
+            {
+                id: 'q11',
+                category: 'F. 교육 기대 사항 (마무리)',
+                title: '이번 AI 교육(또는 향후 활용)을 통해 가장 배우고 싶거나 기대하는 점은 무엇인가요?',
+                subtitle: '(최대 2개 선택)',
+                type: 'multiple', max: 2,
+                options: [
+                    '최신 AI 트렌드 및 필수 기초 개념 완벽 이해',
+                    '내 직무(보고서, 데이터 등)에 바로 써먹는 실전 프롬프트 작성법',
+                    '단순 반복 업무를 확 줄여주는 나만의 자동화 노하우',
+                    '글쓰기를 넘어선 창작(이미지, 영상, 기획) 툴 활용법'
                 ]
             }
         ];
@@ -247,7 +260,7 @@
                     const label = document.createElement('label');
                     label.className = 'relative cursor-pointer';
                     
-                    if(opt.includes('잘 모르겠습니다') || opt.includes('최고 수준 보안') || opt.includes('중간 수준 보안') || q.id === 'q7' || q.id === 'q9' || q.id === 'q10') {
+                    if(opt.includes('잘 모르겠습니다') || opt.includes('최고 수준 보안') || opt.includes('중간 수준 보안') || q.id === 'q7' || q.id === 'q9' || q.id === 'q10' || q.id === 'q11') {
                         label.className = 'relative cursor-pointer md:col-span-2'; 
                     }
                     
@@ -326,10 +339,9 @@
             }
             errorMsg.classList.add('hidden');
 
-            // ✅ 로컬 메모리(임시 대시보드용)에 데이터 저장
             saveToLocalAdmin(userName, results);
 
-            // ✅ 구글 시트로 데이터 전송 (강사님 URL 연동 완료)
+            // ✅ 구글 시트로 데이터 전송
             fetch('https://script.google.com/macros/s/AKfycbyD-z8UV_YE4IQVL2tMAyecTVC7I1DU4bwM1FxGeKhPYBCDZZXJWLv-bbwys7hNLqwd0g/exec', { 
                 method: 'POST', 
                 mode: 'no-cors',
